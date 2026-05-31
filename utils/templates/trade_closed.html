@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #1a1e23; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { background-color: #242930; padding: 30px; text-align: center; border-bottom: 1px solid #333942; }
+        .header p { margin: 0; color: #9ca3af; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .pnl { font-size: 38px; font-weight: 700; color: {profit_color}; margin: 0; }
+        .content { padding: 30px; color: #d1d5db; }
+        .grid { display: table; width: 100%; border-collapse: separate; border-spacing: 0 15px; }
+        .row { display: table-row; }
+        .col-left { display: table-cell; font-size: 14px; color: #9ca3af; width: 50%; padding-bottom: 5px; }
+        .col-right { display: table-cell; font-size: 16px; color: #ffffff; font-weight: 600; text-align: right; width: 50%; }
+        .divider { height: 1px; background-color: #333942; margin: 20px 0; }
+        .footer { background-color: #111316; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p>Trade Closed • {action} #{ticket}</p>
+            <h1 class="pnl">{net_profit}</h1>
+        </div>
+        <div class="content">
+            <div class="grid">
+                <div class="row">
+                    <div class="col-left">Close Price</div>
+                    <div class="col-right">{close_price}</div>
+                </div>
+                <div class="row">
+                    <div class="col-left">Duration</div>
+                    <div class="col-right">{duration}</div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="grid">
+                <div class="row">
+                    <div class="col-left">New Account Balance</div>
+                    <div class="col-right">${new_balance}</div>
+                </div>
+                <div class="row">
+                    <div class="col-left">System Action</div>
+                    <div class="col-right" style="color: #3b82f6;">{next_step}</div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            Automated execution via Trading OS • MetaTrader 5
+        </div>
+    </div>
+</body>
+</html>

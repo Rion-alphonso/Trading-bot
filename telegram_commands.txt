@@ -1,0 +1,25 @@
+XAUUSD Trading Bot - Telegram Remote Control Commands
+
+--- 📊 Insights & Monitoring ---
+/status   - Check the bot's current state (RUNNING/STOPPED), account balance, equity, martingale level, and next trade direction.
+/report   - Get a daily performance summary including total trades taken, net PnL, and win rate.
+/history  - View the results of your last 5 closed trades.
+/open     - Inspect the currently open position (if any), including the ticket number, entry price, and level.
+/chart    - Generates a live equity curve graph from your account history and sends it as an image.
+/logs     - Fetch the last 15 lines of the system logs to debug any issues directly from your phone.
+
+--- ⚙️ Execution Controls ---
+/start    - Start the trading engine if it was stopped. (Same as /resume)
+/resume   - Resume the trading engine and start looking for entries.
+/pause    - Stop the trading engine from opening any *new* trades. (Existing trades will still be managed).
+/closeall - EMERGENCY PANIC BUTTON. Instantly sends a signal to close all open positions at current market price and halts the bot.
+/reset    - Manually reset your Martingale recovery streak back to Level 1.
+
+--- 🔧 Configuration Overrides ---
+/setrisk <%>           - Dynamically override the Level 1 risk percentage without restarting the bot. (Usage: /setrisk 2.0)
+/direction <buy|sell>  - Force the engine to take a specific direction for its next trade, overriding the EMA indicator. (Usage: /direction buy)
+/session <on|off>      - Toggle whether the bot should strictly obey the 10AM/8PM trading hours. Set to 'off' to trade 24/7. (Usage: /session off)
+/config                - View all of your currently active overrides (Risk, Session, Direction).
+
+--- 🩺 System Diagnostics ---
+/health   - Check the VPS / Host machine's CPU usage, RAM usage, and SQLite database size.

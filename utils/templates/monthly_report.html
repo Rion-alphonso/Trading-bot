@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background-color: #1a1e23; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
+        .header {{ background-color: #242930; padding: 25px; text-align: center; border-bottom: 1px solid #333942; }}
+        .header h1 {{ margin: 0; color: #ffffff; font-size: 24px; font-weight: 600; letter-spacing: 1px; }}
+        .badge {{ display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 15px; color: #1a1e23; background-color: #fbbf24; }}
+        .content {{ padding: 30px; color: #d1d5db; }}
+        .grid {{ display: table; width: 100%; border-collapse: separate; border-spacing: 0 15px; }}
+        .row {{ display: table-row; }}
+        .col-left {{ display: table-cell; font-size: 14px; color: #9ca3af; width: 50%; padding-bottom: 5px; }}
+        .col-right {{ display: table-cell; font-size: 16px; color: #ffffff; font-weight: 600; text-align: right; width: 50%; }}
+        .divider {{ height: 1px; background-color: #333942; margin: 20px 0; }}
+        .footer {{ background-color: #111316; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; }}
+        .accent {{ color: #3b82f6; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TRADING <span class="accent">OS</span></h1>
+            <div class="badge">MONTHLY SUMMARY: {month_name}</div>
+        </div>
+        <div class="content">
+            <p style="text-align: center; color: #9ca3af; margin-top: 0; margin-bottom: 25px; font-size: 15px;">
+                The month has ended. Here is your comprehensive trading performance.
+            </p>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px;">Monthly Net Profit</div>
+                <div style="font-size: 36px; font-weight: 700; color: {profit_color}; margin-top: 5px;">{net_profit}</div>
+            </div>
+            
+            <div class="grid">
+                <div class="row">
+                    <div class="col-left">Total Trades This Month</div>
+                    <div class="col-right">{total_trades}</div>
+                </div>
+                <div class="row">
+                    <div class="col-left">Win Rate</div>
+                    <div class="col-right">{win_rate}</div>
+                </div>
+                <div class="row">
+                    <div class="col-left">Final Balance</div>
+                    <div class="col-right">${end_balance}</div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="text-align: center; font-size: 13px; color: #9ca3af; font-style: italic;">
+                "Consistency is the true mark of a professional trader."
+            </p>
+            
+        </div>
+        <div class="footer">
+            Automated execution via Trading OS • Monthly Analysis System
+        </div>
+    </div>
+</body>
+</html>

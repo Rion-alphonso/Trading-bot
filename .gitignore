@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project-specific databases, logs and credentials
+*.sqlite
+*.sqlite-journal
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.log
+logs/
+config_local.yaml
+dash_out.txt
