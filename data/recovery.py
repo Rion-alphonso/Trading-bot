@@ -1,6 +1,5 @@
 from data.mt5_client import mt5_client
 from data.state import state_manager
-from core.martingale import martingale_manager
 from core.strategy import strategy_engine
 from utils.logger import system_logger
 

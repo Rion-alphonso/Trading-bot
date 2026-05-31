@@ -19,20 +19,20 @@ system:
   auto_off_enabled: false
   auto_on_enabled: true
 trading:
-  symbol: XAUUSDm
+  symbol: XAUUSD.m
   timeframe: M5
-  initial_capital: 1110.0
-  direction: BOTH
-  days_mode: 24_5
-  risk_percent: 1.0
-  tp_points: 10000
-  sl_points: 1000
-  sessions_ist:
-  - end: '17:30'
-    start: '10:00'
-  - end: '22:30'
-    start: '20:00'
+  initial_capital: 1110
   indicators:
     ema_enabled: false
     ema_fast: 9
     ema_slow: 21
+  sessions_ist:
+  - start: '20:00'
+    end: '22:30'
+  - start: '10:00'
+    end: '17:30'
+  direction: BOTH
+  days_mode: '24_5'
+  risk_percent: 0.1
+  tp_points: 10000
+  sl_points: 1000

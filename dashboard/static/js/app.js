@@ -73,6 +73,7 @@ const btLoading = document.getElementById('bt-loading');
 const btResults = document.getElementById('bt-results');
 const btKpiGrid = document.getElementById('bt-kpi-grid');
 let btChartInstance = null;
+let btPnlChartInstance = null;
 let btCandlesChart = null;
 let lastTrades = [];
 let currentStrategyName = 'default';
@@ -282,12 +283,43 @@ runBtBtn.addEventListener('click', async () => {
         // Draw Chart
         const labels = [];
         const chartData = [];
+        const dailyPnL = {};
         let cumPnl = 0;
         data.trades.forEach((t, i) => {
             cumPnl += t.profit;
             labels.push(`Trade ${i+1}`);
             chartData.push(cumPnl);
+            
+            if (t.entry_time) {
+                // Parse date regardless of format
+                const d = new Date(t.entry_time);
+                if (!isNaN(d.getTime())) {
+                    const day = d.toISOString().split('T')[0];
+                    if (!dailyPnL[day]) dailyPnL[day] = 0;
+                    dailyPnL[day] += t.profit;
+                }
+            }
         });
+        
+        let periodicLabels = Object.keys(dailyPnL).sort();
+        let periodicData = [];
+        if (periodicLabels.length > 60) {
+            const monthlyPnL = {};
+            periodicLabels.forEach(d => {
+                const m = d.substring(0, 7);
+                if (!monthlyPnL[m]) monthlyPnL[m] = 0;
+                monthlyPnL[m] += dailyPnL[d];
+            });
+            periodicLabels = Object.keys(monthlyPnL).sort();
+            periodicData = periodicLabels.map(m => monthlyPnL[m]);
+            const title = document.getElementById('pnl-chart-title');
+            if (title) title.innerText = 'Monthly Returns';
+        } else {
+            periodicData = periodicLabels.map(d => dailyPnL[d]);
+            const title = document.getElementById('pnl-chart-title');
+            if (title) title.innerText = 'Daily Returns';
+        }
+        const pnlBarColors = periodicData.map(v => v >= 0 ? 'rgba(14, 203, 129, 0.8)' : 'rgba(246, 70, 93, 0.8)');
         
         if (btChartInstance) btChartInstance.destroy();
         const ctx2 = document.getElementById('btChart').getContext('2d');
@@ -306,6 +338,22 @@ runBtBtn.addEventListener('click', async () => {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { position: 'right' }, x: { display: false } }, animation: { duration: 1000 } }
         });
 
+        if (btPnlChartInstance) btPnlChartInstance.destroy();
+        const ctxPnl = document.getElementById('btPnlChart').getContext('2d');
+        btPnlChartInstance = new Chart(ctxPnl, {
+            type: 'bar',
+            data: {
+                labels: periodicLabels,
+                datasets: [{
+                    label: 'Periodic PnL',
+                    data: periodicData,
+                    backgroundColor: pnlBarColors,
+                    borderWidth: 0
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { position: 'right' }, x: { display: true } }, animation: { duration: 1000 } }
+        });
+
         // Render advanced charts
         lastTrades = data.trades;
         
@@ -320,32 +368,55 @@ runBtBtn.addEventListener('click', async () => {
         const btTbody = document.getElementById('bt-trades-tbody');
         if (btTbody) {
             btTbody.innerHTML = '';
+            let runningCapital = parseFloat(capital) || 1000;
             data.trades.forEach((t, i) => {
+                runningCapital += t.profit;
                 const tr = document.createElement('tr');
                 const profitClass = t.profit >= 0 ? 'text-buy' : 'text-sell';
                 const profitText = t.profit > 0 ? `+${t.profit.toFixed(2)}` : t.profit.toFixed(2);
-                let dateStr = "";
-                let timeStr = "";
+                let entryDateStr = "-";
+                let entryTimeStr = "-";
                 if (t.entry_time) {
-                    const parts = t.entry_time.split(" ");
+                    let et = t.entry_time.replace('Z', '');
+                    const parts = et.split('T');
                     if (parts.length === 2) {
-                        dateStr = parts[0];
-                        timeStr = parts[1];
+                        entryDateStr = parts[0];
+                        entryTimeStr = parts[1].substring(0, 8);
+                    } else {
+                        const spaceParts = et.split(' ');
+                        entryDateStr = spaceParts[0] || "-";
+                        entryTimeStr = (spaceParts[1] || "-").substring(0, 8);
                     }
                 }
+                
+                let exitDateStr = "-";
+                let exitTimeStr = "-";
+                if (t.exit_time) {
+                    let ex = t.exit_time.replace('Z', '');
+                    const parts = ex.split('T');
+                    if (parts.length === 2) {
+                        exitDateStr = parts[0];
+                        exitTimeStr = parts[1].substring(0, 8);
+                    } else {
+                        const spaceParts = ex.split(' ');
+                        exitDateStr = spaceParts[0] || "-";
+                        exitTimeStr = (spaceParts[1] || "-").substring(0, 8);
+                    }
+                }
+                
                 tr.innerHTML = `
-                    <td>${dateStr}</td>
-                    <td>${timeStr}</td>
+                    <td>${entryDateStr}</td>
+                    <td>${entryTimeStr}</td>
                     <td class="${t.direction === 'BUY' ? 'text-buy' : 'text-sell'}">${t.direction}</td>
-                    <td>L${t.level}</td>
-                    <td>${t.entry_time}</td>
-                    <td>${t.exit_time}</td>
+                    <td>${exitDateStr}</td>
+                    <td>${exitTimeStr}</td>
                     <td>${t.entry_price ? t.entry_price.toFixed(2) : '-'}</td>
                     <td>${t.exit_price ? t.exit_price.toFixed(2) : '-'}</td>
                     <td>${t.sl_price ? t.sl_price.toFixed(2) : '-'}</td>
                     <td>${t.tp_price ? t.tp_price.toFixed(2) : '-'}</td>
                     <td class="${profitClass}">${profitText}</td>
                     <td class="${profitClass}">${t.result}</td>
+                    <td>$${runningCapital.toFixed(2)}</td>
                 `;
                 btTbody.appendChild(tr);
             });
@@ -354,12 +425,18 @@ runBtBtn.addEventListener('click', async () => {
         btLoading.classList.add('hidden');
         btResults.classList.remove('hidden');
         
+        try {
+            if (data.ohlc && data.trades) renderCandlesticks(data.ohlc, data.trades);
+        } catch (e) {
+            console.error("Candlestick render error", e);
+        }
+        
         // Refresh leaderboard with new run
         if(typeof loadLeaderboard === 'function') loadLeaderboard();
 
         
     } catch(e) {
-        alert("Simulation failed.");
+        alert("Simulation failed: " + e.stack);
         btLoading.classList.add('hidden');
     }
 });
@@ -479,6 +556,11 @@ if(optimizeBtBtn) {
             
             lastTrades = data.best_trades;
             try {
+                if (data.best_ohlc && data.best_trades) renderCandlesticks(data.best_ohlc, data.best_trades);
+            } catch (err) {
+                console.error("Optimize Candlesticks render error:", err);
+            }
+            try {
                 renderHeatmap(data.best_trades);
             } catch (err) {
                 console.error("Optimize Heatmap render error:", err);
@@ -487,12 +569,43 @@ if(optimizeBtBtn) {
             
             const labels = [];
             const chartData = [];
+            const dailyPnL = {};
             let cumPnl = 0;
             data.best_trades.forEach((t, i) => {
                 cumPnl += t.profit;
                 labels.push(`Trade ${i+1}`);
                 chartData.push(cumPnl);
+                
+                if (t.entry_time) {
+                    const d = new Date(t.entry_time);
+                    if (!isNaN(d.getTime())) {
+                        const day = d.toISOString().split('T')[0];
+                        if (!dailyPnL[day]) dailyPnL[day] = 0;
+                        dailyPnL[day] += t.profit;
+                    }
+                }
             });
+            
+            let periodicLabels = Object.keys(dailyPnL).sort();
+            let periodicData = [];
+            if (periodicLabels.length > 60) {
+                const monthlyPnL = {};
+                periodicLabels.forEach(d => {
+                    const m = d.substring(0, 7);
+                    if (!monthlyPnL[m]) monthlyPnL[m] = 0;
+                    monthlyPnL[m] += dailyPnL[d];
+                });
+                periodicLabels = Object.keys(monthlyPnL).sort();
+                periodicData = periodicLabels.map(m => monthlyPnL[m]);
+                const title = document.getElementById('pnl-chart-title');
+                if (title) title.innerText = 'Monthly Returns';
+            } else {
+                periodicData = periodicLabels.map(d => dailyPnL[d]);
+                const title = document.getElementById('pnl-chart-title');
+                if (title) title.innerText = 'Daily Returns';
+            }
+            const pnlBarColors = periodicData.map(v => v >= 0 ? 'rgba(14, 203, 129, 0.8)' : 'rgba(246, 70, 93, 0.8)');
+
             if (btChartInstance) btChartInstance.destroy();
             const ctx2 = document.getElementById('btChart').getContext('2d');
             btChartInstance = new Chart(ctx2, {
@@ -500,12 +613,20 @@ if(optimizeBtBtn) {
                 data: { labels: labels, datasets: [{ label: 'Opt PnL', data: chartData, borderColor: '#0ECB81', backgroundColor: 'rgba(14, 203, 129, 0.1)', borderWidth: 2, tension: 0.1, fill: true, pointRadius: 0 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { position: 'right' }, x: { display: false } }, animation: { duration: 1000 } }
             });
+
+            if (btPnlChartInstance) btPnlChartInstance.destroy();
+            const ctxPnl = document.getElementById('btPnlChart').getContext('2d');
+            btPnlChartInstance = new Chart(ctxPnl, {
+                type: 'bar',
+                data: { labels: periodicLabels, datasets: [{ label: 'Periodic PnL', data: periodicData, backgroundColor: pnlBarColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { position: 'right' }, x: { display: true } }, animation: { duration: 1000 } }
+            });
             
             const btTbody = document.getElementById('bt-trades-tbody');
             if (btTbody) btTbody.innerHTML = '<tr><td colspan="12" style="text-align:center;">Check exported CSV for full trade list</td></tr>';
             
         } catch(e) {
-            alert("Optimization failed.");
+            alert("Simulation failed: " + e.stack);
             btLoading.classList.add('hidden');
         }
     });
@@ -648,7 +769,7 @@ document.getElementById('strat-add-session-btn').addEventListener('click', () =>
 function populateStrategyModal(name, config, isDuplicate) {
     document.getElementById('strat-name').value = isDuplicate ? `Copy of ${name}` : name;
     document.getElementById('strat-name').readOnly = !isDuplicate;
-    document.getElementById('strat-symbol').value = config.symbol || 'XAUUSD';
+    document.getElementById('strat-symbol').value = config.symbol || 'XAUUSDm';
     document.getElementById('strat-tf').value = config.timeframe || (config.timeframe_minutes ? `M${config.timeframe_minutes}` : 'M5');
     document.getElementById('strat-cap').value = config.initial_capital || 1110.0;
     if (config.indicators) {
@@ -993,4 +1114,256 @@ if (copyLiveBtBtn) {
         
         copyToLiveEnvironment("Simulator Strategy", configObj);
     });
+}
+
+function renderCandlesticks(ohlc, trades) {
+    const container = document.getElementById('btCandleChart');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    container.style.position = 'relative'; // For tooltip
+    if (window.btCandlestickChartInstance) {
+        window.btCandlestickChartInstance.remove();
+    }
+    
+    const chartOptions = { 
+        layout: { background: { type: 'solid', color: '#1E222D' }, textColor: '#D9D9D9' },
+        grid: { vertLines: { color: '#2B2F3A' }, horzLines: { color: '#2B2F3A' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#2B2F3A' },
+        timeScale: { borderColor: '#2B2F3A', timeVisible: true, secondsVisible: false },
+        watermark: { color: 'rgba(255, 255, 255, 0.04)', visible: true, text: 'ALGORITHMIC BACKTEST', fontSize: 48, horzAlign: 'center', vertAlign: 'center' }
+    };
+    
+    const chart = LightweightCharts.createChart(container, chartOptions);
+    window.btCandlestickChartInstance = chart;
+    
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#0ECB81', downColor: '#F6465D', borderDownColor: '#F6465D', borderUpColor: '#0ECB81', wickDownColor: '#F6465D', wickUpColor: '#0ECB81'
+    });
+    
+    const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '', 
+        scaleMargins: { top: 0.8, bottom: 0 }
+    });
+    
+    const ema9Series = chart.addLineSeries({ color: 'rgba(41, 98, 255, 0.7)', lineWidth: 2, title: 'EMA 9', crosshairMarkerVisible: false });
+    const ema21Series = chart.addLineSeries({ color: 'rgba(255, 109, 0, 0.7)', lineWidth: 2, title: 'EMA 21', crosshairMarkerVisible: false });
+    
+    const formattedOhlc = ohlc.map(item => {
+        let ts = 0;
+        if (typeof item.time === 'number') { ts = item.time; }
+        else { ts = Math.floor(new Date(item.time).getTime() / 1000); }
+        return { time: ts, open: item.open, high: item.high, low: item.low, close: item.close, volume: item.volume || 0 };
+    }).filter(item => !isNaN(item.time) && item.time > 0).sort((a, b) => a.time - b.time);
+    
+    const uniqueOhlc = [];
+    const volumeData = [];
+    let lastTime = 0;
+    
+    formattedOhlc.forEach(item => { 
+        if (item.time !== lastTime) { 
+            uniqueOhlc.push(item); 
+            volumeData.push({ time: item.time, value: item.volume, color: item.close >= item.open ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)' });
+            lastTime = item.time; 
+        } 
+    });
+    
+    const calcEMA = (data, period) => {
+        const k = 2 / (period + 1);
+        let ema = data[0].close;
+        const res = [];
+        data.forEach(d => {
+            ema = (d.close - ema) * k + ema;
+            res.push({ time: d.time, value: ema });
+        });
+        return res;
+    };
+    
+    if (uniqueOhlc.length > 0) {
+        candleSeries.setData(uniqueOhlc);
+        volumeSeries.setData(volumeData);
+        if(uniqueOhlc.length > 21) {
+            ema9Series.setData(calcEMA(uniqueOhlc, 9));
+            ema21Series.setData(calcEMA(uniqueOhlc, 21));
+        }
+    }
+    
+    const markers = [];
+    trades.forEach(t => {
+        if (t.entry_time) {
+            let ts = Math.floor(new Date(t.entry_time).getTime() / 1000);
+            if (!isNaN(ts)) markers.push({ time: ts, position: t.direction === 'BUY' ? 'belowBar' : 'aboveBar', color: t.direction === 'BUY' ? '#0ECB81' : '#F6465D', shape: t.direction === 'BUY' ? 'arrowUp' : 'arrowDown', text: t.direction });
+        }
+        if (t.exit_time) {
+            let ts = Math.floor(new Date(t.exit_time).getTime() / 1000);
+            if (!isNaN(ts)) markers.push({ time: ts, position: t.result === 'TP' ? 'aboveBar' : 'belowBar', color: t.result === 'TP' ? '#0ECB81' : '#F6465D', shape: 'circle', text: t.result });
+        }
+    });
+    markers.sort((a, b) => a.time - b.time);
+    
+    const uniqueMarkers = [];
+    for (let i = 0; i < markers.length; i++) {
+        if (uniqueMarkers.length > 0 && uniqueMarkers[uniqueMarkers.length - 1].time === markers[i].time) {
+            uniqueMarkers[uniqueMarkers.length - 1].text += ' / ' + markers[i].text;
+        } else {
+            uniqueMarkers.push(markers[i]);
+        }
+    }
+    
+    try {
+        if (uniqueMarkers.length > 0) candleSeries.setMarkers(uniqueMarkers);
+    } catch (e) {
+        console.error("Error setting markers:", e);
+    }
+    
+    // Tooltip logic
+    let tooltip = document.getElementById('bt-chart-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'bt-chart-tooltip';
+        tooltip.style = 'position: absolute; display: none; padding: 8px; box-sizing: border-box; font-size: 13px; font-family: "Roboto Mono", monospace; color: #D9D9D9; background-color: rgba(30, 34, 45, 0.8); text-align: left; z-index: 1000; pointer-events: none; border: 1px solid #3B4050; border-radius: 4px; left: 12px; top: 12px;';
+        container.appendChild(tooltip);
+    }
+    
+    chart.subscribeCrosshairMove(param => {
+        if (param.point === undefined || !param.time || param.point.x < 0 || param.point.x > container.clientWidth || param.point.y < 0 || param.point.y > container.clientHeight) {
+            tooltip.style.display = 'none';
+        } else {
+            const dateStr = new Date(param.time * 1000).toISOString().replace('T', ' ').substring(0, 19);
+            const data = param.seriesData.get(candleSeries);
+            const volData = param.seriesData.get(volumeSeries);
+            if (data) {
+                const color = data.close >= data.open ? '#0ECB81' : '#F6465D';
+                tooltip.style.display = 'block';
+                tooltip.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 6px; color: #8F98AD;">${dateStr} (UTC)</div>
+                    <div>O: <span style="color:${color}">${data.open.toFixed(2)}</span> H: <span style="color:${color}">${data.high.toFixed(2)}</span></div>
+                    <div>L: <span style="color:${color}">${data.low.toFixed(2)}</span> C: <span style="color:${color}">${data.close.toFixed(2)}</span></div>
+                    ${volData ? `<div style="margin-top:4px; color:#8F98AD;">Vol: ${volData.value.toFixed(0)}</div>` : ''}
+                `;
+            }
+        }
+    });
+    
+    chart.timeScale().fitContent();
+    
+    // --- Custom TP/SL Trade Zones Overlay ---
+    let overlayCanvas = document.getElementById('trade-zones-overlay');
+    if (!overlayCanvas) {
+        overlayCanvas = document.createElement('canvas');
+        overlayCanvas.id = 'trade-zones-overlay';
+        overlayCanvas.style.position = 'absolute';
+        overlayCanvas.style.top = '0';
+        overlayCanvas.style.left = '0';
+        overlayCanvas.style.width = '100%';
+        overlayCanvas.style.height = '100%';
+        overlayCanvas.style.pointerEvents = 'none';
+        overlayCanvas.style.zIndex = '500';
+        container.appendChild(overlayCanvas);
+    }
+    
+    if (window.btTradeOverlayReq) cancelAnimationFrame(window.btTradeOverlayReq);
+    
+    let overlayActive = true;
+    window.btTradeOverlayState = '';
+    
+    const drawOverlay = () => {
+        if (!overlayActive || !document.getElementById('trade-zones-overlay')) return;
+        
+        const canvas = document.getElementById('trade-zones-overlay');
+        const checkbox = document.getElementById('show-trade-zones');
+        
+        if (canvas.width !== container.clientWidth || canvas.height !== container.clientHeight) {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            window.btTradeOverlayState = ''; // force redraw on resize
+        }
+        
+        const isChecked = checkbox ? checkbox.checked : true;
+        const logicalRange = chart.timeScale().getVisibleLogicalRange();
+        const priceRef = candleSeries.priceToCoordinate(uniqueOhlc[0]?.close || 0);
+        const stateHash = logicalRange ? `${logicalRange.from}_${logicalRange.to}_${priceRef}_${canvas.width}_${isChecked}` : '';
+        
+        if (stateHash === window.btTradeOverlayState) {
+            window.btTradeOverlayReq = requestAnimationFrame(drawOverlay);
+            return;
+        }
+        window.btTradeOverlayState = stateHash;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (isChecked && logicalRange) {
+            const paneWidth = chart.timeScale().width() || canvas.width - 55; 
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, paneWidth, canvas.height - 25);
+            ctx.clip();
+            
+            trades.forEach(t => {
+                if (!t.entry_time || !t.exit_time || !t.tp_price || !t.sl_price) return;
+                
+                const tsEntry = Math.floor(new Date(t.entry_time).getTime() / 1000);
+                const tsExit = Math.floor(new Date(t.exit_time).getTime() / 1000);
+                
+                let xEntry = chart.timeScale().timeToCoordinate(tsEntry);
+                let xExit = chart.timeScale().timeToCoordinate(tsExit);
+                
+                if (xEntry === null || xExit === null) return;
+                
+                // If trade opened and closed very quickly, give it a min width so the box is visible
+                if (xExit - xEntry < 6) xExit = xEntry + 6; 
+                
+                // Don't render if it's completely off the screen horizontally
+                if (Math.max(xEntry, xExit) < 0 || Math.min(xEntry, xExit) > paneWidth) return;
+                
+                const yEntry = candleSeries.priceToCoordinate(t.entry_price);
+                const yTP = candleSeries.priceToCoordinate(t.tp_price);
+                const ySL = candleSeries.priceToCoordinate(t.sl_price);
+                const yExitReal = candleSeries.priceToCoordinate(t.exit_price);
+                
+                if (yEntry === null || yTP === null || ySL === null || yExitReal === null) return;
+                
+                // TP Zone (Green Shade)
+                ctx.fillStyle = 'rgba(14, 203, 129, 0.15)';
+                ctx.fillRect(xEntry, Math.min(yEntry, yTP), xExit - xEntry, Math.abs(yEntry - yTP));
+                
+                // SL Zone (Red Shade)
+                ctx.fillStyle = 'rgba(246, 70, 93, 0.15)';
+                ctx.fillRect(xEntry, Math.min(yEntry, ySL), xExit - xEntry, Math.abs(yEntry - ySL));
+                
+                // Entry Line (Dashed)
+                ctx.beginPath();
+                ctx.moveTo(xEntry, yEntry);
+                ctx.lineTo(xExit, yEntry);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                
+                // Trade Journey Line (Solid pointer from Entry to actual Exit)
+                ctx.beginPath();
+                ctx.moveTo(xEntry, yEntry);
+                ctx.lineTo(xExit, yExitReal);
+                ctx.strokeStyle = t.profit > 0 ? '#0ECB81' : '#F6465D';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                ctx.stroke();
+                
+                // End Dot
+                ctx.beginPath();
+                ctx.arc(xExit, yExitReal, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = t.profit > 0 ? '#0ECB81' : '#F6465D';
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+        
+        window.btTradeOverlayReq = requestAnimationFrame(drawOverlay);
+    };
+    
+    drawOverlay();
 }

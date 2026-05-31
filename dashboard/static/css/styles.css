@@ -86,7 +86,7 @@ body { background: var(--bg-base); color: var(--text-primary); font-family: var(
 /* Chart & Table Panels */
 .chart-section { flex: 1; display: flex; flex-direction: column; border-bottom: 1px solid var(--border-color); }
 .chart-wrapper { flex: 1; position: relative; padding: 0 20px 20px 20px; }
-.trades-section { height: 40%; display: flex; flex-direction: column; }
+.trades-section { height: auto; display: flex; flex-direction: column; }
 .table-wrapper { flex: 1; overflow-y: auto; }
 .table-wrapper::-webkit-scrollbar { width: 6px; }
 .table-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); }

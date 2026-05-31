@@ -1,23 +1,48 @@
 {
     "Default Gold": {
         "symbol": "XAUUSD.m",
-        "timeframe_minutes": 5,
+        "timeframe": "M5",
         "initial_capital": 1110,
         "indicators": {
             "ema_enabled": false,
             "ema_fast": 9,
             "ema_slow": 21
         },
-        "sessions_ist": {
-            "morning": {
+        "sessions_ist": [
+            {
+                "start": "20:00",
+                "end": "22:30"
+            },
+            {
+                "start": "10:00",
+                "end": "17:30"
+            }
+        ],
+        "direction": "BOTH",
+        "days_mode": "24_5",
+        "risk_percent": 0.1,
+        "tp_points": 10000,
+        "sl_points": 1000
+    },
+    "Copy of Simulator Strategy": {
+        "symbol": "XAUUSD",
+        "timeframe": "M5",
+        "initial_capital": 1110,
+        "indicators": {
+            "ema_enabled": false,
+            "ema_fast": 9,
+            "ema_slow": 21
+        },
+        "sessions_ist": [
+            {
                 "start": "10:00",
                 "end": "17:30"
             },
-            "evening": {
+            {
                 "start": "20:00",
                 "end": "22:30"
             }
-        },
+        ],
         "direction": "BOTH",
         "days_mode": "24_5",
         "risk_percent": 0.1,

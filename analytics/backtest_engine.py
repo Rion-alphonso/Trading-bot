@@ -51,8 +51,10 @@ class BacktestEngine:
         self.ist_tz = pytz.timezone('Asia/Kolkata')
 
     def run(self, start_date=None, end_date=None, num_candles=None, max_trades=None):
-        if not mt5.initialize():
-            print("MT5 initialization failed.")
+        mt5.shutdown()
+        mt5_path = r'C:\Program Files\MetaTrader 5\terminal64.exe'
+        if not mt5.initialize(path=mt5_path):
+            print(f"Failed to initialize MT5 at {mt5_path}. Error: {mt5.last_error()}")
             return False
 
         all_rates = []
@@ -93,8 +95,9 @@ class BacktestEngine:
         df['time'] = pd.to_datetime(df['time'], unit='s')
         
         # Store OHLC for frontend lightweight charts
-        self.rates_data = df[['time', 'open', 'high', 'low', 'close']].copy()
-        self.rates_data['time'] = self.rates_data['time'].astype(str)
+        self.rates_data = df[['time', 'open', 'high', 'low', 'close', 'tick_volume']].copy()
+        self.rates_data.rename(columns={'tick_volume': 'volume'}, inplace=True)
+        self.rates_data['time'] = self.rates_data['time'].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         
         symbol_info = mt5.symbol_info(self.symbol)
         if not symbol_info:
@@ -268,16 +271,14 @@ class BacktestEngine:
         return False
 
     def _calculate_params(self, entry_price, point, contract_size):
-        # Calculate how many multiples of the initial capital we have
-        multiplier = max(1, int(self.balance // self.initial_balance))
-        
         # Risk adjustment
         if self.strategy == 'advanced_grow':
             risk_pct = 1.0
         elif self.strategy == 'custom':
             risk_pct = float(self.custom_params.get('risk', 0.1))
         else:
-            risk_pct = 0.1
+            # Use configured risk based on martingale level instead of hardcoded 0.1
+            risk_pct = float(self.l1_risk) if self.current_level == 1 else (float(self.l2_risk) if self.current_level == 2 else float(self.l3_risk))
 
         sl_pts = self.l1_sl if self.current_level == 1 else (self.l2_sl if self.current_level == 2 else self.l3_sl)
         tp_pts = self.l1_tp if self.current_level == 1 else (self.l2_tp if self.current_level == 2 else self.l3_tp)
@@ -299,16 +300,9 @@ class BacktestEngine:
         if volume < 0.01:
             volume = 0.01
             
-        sl_price_diff = sl_pts * point
-        loss_per_lot = sl_price_diff * contract_size
+        sl_price = entry_price - (sl_pts * point) if self.next_direction == 'BUY' else entry_price + (sl_pts * point)
+        tp_price = entry_price + (tp_pts * point) if self.next_direction == 'BUY' else entry_price - (tp_pts * point)
         
-        if self.next_direction == 'BUY':
-            sl_price = entry_price - sl_price_diff
-            tp_price = entry_price + (tp_pts * point)
-        else:
-            sl_price = entry_price + sl_price_diff
-            tp_price = entry_price - (tp_pts * point)
-            
         return volume, sl_price, tp_price
 
     def _generate_excel(self):

@@ -88,7 +88,7 @@ class Auditor:
                 with open(error_log, 'r') as f:
                     lines = deque(f, 50)
                     # Check last 50 lines for new errors
-                    for line in lines[-50:]:
+                    for line in lines:
                         if 'ERROR' in line or 'Exception' in line:
                             if line.strip() not in self.warnings:
                                 self.warnings.append(line.strip())

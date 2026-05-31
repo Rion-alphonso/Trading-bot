@@ -304,9 +304,9 @@ def run_gui_backtest():
         'comm': comm,
         'strategy': strategy,
         'custom_params': custom_params,
-        'l1_risk': 1.0, 'l1_tp': 10000, 'l1_sl': 1000,
-        'l2_risk': 10.0, 'l2_tp': 10000, 'l2_sl': 1000,
-        'l3_risk': 100.0, 'l3_tp': 10000, 'l3_sl': 1000,
+        'l1_risk': custom_params.get('risk', 1.0), 'l1_tp': custom_params.get('tp', 10000), 'l1_sl': custom_params.get('sl', 1000),
+        'l2_risk': custom_params.get('risk', 1.0) * 10, 'l2_tp': custom_params.get('tp', 10000), 'l2_sl': custom_params.get('sl', 1000),
+        'l3_risk': custom_params.get('risk', 1.0) * 100, 'l3_tp': custom_params.get('tp', 10000), 'l3_sl': custom_params.get('sl', 1000),
     }
     engine = BacktestEngine(config)
     from datetime import datetime, timedelta

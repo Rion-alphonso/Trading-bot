@@ -6,13 +6,14 @@ from datetime import datetime
 
 class MT5Client:
     def __init__(self):
-        self.symbol = config.get('trading', {}).get('symbol', 'XAUUSD')
+        self.symbol = config.get('trading', {}).get('symbol', 'XAUUSDm')
         self.connected = False
 
     def initialize(self):
         """Initializes the MT5 connection."""
-        if not mt5.initialize():
-            error_logger.error(f"MT5 initialize() failed, error code = {mt5.last_error()}")
+        mt5_path = r'C:\Program Files\MetaTrader 5\terminal64.exe'
+        if not mt5.initialize(path=mt5_path):
+            error_logger.error(f"MT5 initialize() failed at {mt5_path}, error code = {mt5.last_error()}")
             return False
         
         self.connected = True
